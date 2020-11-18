@@ -2,3 +2,6 @@ domains.txt
 config.yaml
 dnstransfer.yaml
 domains10.txt
+logrus.log
+*.log
+*.txt
