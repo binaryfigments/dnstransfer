@@ -31,18 +31,10 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.dnstransfer.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
-	// What nameserver to use?
+	rootCmd.PersistentFlags().BoolP("json", "j", false, "JSON output")
+	rootCmd.PersistentFlags().BoolP("debug", "d", false, "all output for debugging")
+	rootCmd.PersistentFlags().String("logfile", "", "Output to logfile.")
 	rootCmd.PersistentFlags().String("nameserver", "8.8.8.8", "What nameserver to use.")
 }
 

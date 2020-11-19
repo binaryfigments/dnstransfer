@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/binaryfigments/dnstransfer/libs/axfr"
 	"github.com/binaryfigments/dnstransfer/libs/ns"
@@ -18,15 +20,31 @@ var checkCmd = &cobra.Command{
 	Short: "This command checks a list of domain names for zone transfers.",
 	Long:  `This command checks a list of domain names for zone transfers.`,
 	Run: func(cmd *cobra.Command, args []string) {
-
 		log.Out = os.Stdout
 
-		// You could set this to any `io.Writer` such as a file
-		logfile, err := os.OpenFile("logrus.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-		if err == nil {
-			log.Out = logfile
+		// Set the output format
+		jo, _ := cmd.Flags().GetBool("json")
+		if jo == true {
+			log.SetFormatter(&logrus.JSONFormatter{})
+		}
+
+		// Set the log level
+		do, _ := cmd.Flags().GetBool("debug")
+		if do == true {
+			log.SetLevel(logrus.InfoLevel)
 		} else {
-			log.Info("Failed to log to file, using default stderr")
+			log.SetLevel(logrus.ErrorLevel)
+		}
+
+		// You could set this to any `io.Writer` such as a file
+		lf, _ := cmd.Flags().GetString("logfile")
+		if lf != "" {
+			logfile, err := os.OpenFile(lf, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+			if err == nil {
+				log.Out = logfile
+			} else {
+				log.Error("Failed to log to file, using default stderr")
+			}
 		}
 
 		// get nameserver from flags
@@ -61,7 +79,12 @@ func transferWorker(domain string, nameserverFlag string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	// start here
 	// Get nameservers
-	domainnameservers, err := ns.Get(domain, nameserverFlag)
+	var domainnameservers []string
+	err := retry(2, 2*time.Second, func() (err error) {
+		domainnameservers, err = ns.Get(domain, nameserverFlag)
+		return
+	})
+	// domainnameservers, err := ns.Get(domain, nameserverFlag)
 	if err != nil {
 		// TODO: build in a retry (in ns function above)
 		log.WithFields(logrus.Fields{
@@ -108,9 +131,28 @@ func transferWorker(domain string, nameserverFlag string, wg *sync.WaitGroup) {
 
 func init() {
 	rootCmd.AddCommand(checkCmd)
-	// TODO: Logging
-	// log.SetFormatter(&logrus.JSONFormatter{})
-	log.SetLevel(logrus.ErrorLevel)
 	log.SetOutput(os.Stdout)
 	checkCmd.PersistentFlags().String("file", "domains.txt", "File with domain names.")
+}
+
+func retry(attempts int, sleep time.Duration, f func() error) (err error) {
+	for i := 0; ; i++ {
+		err = f()
+		if err == nil {
+			return
+		}
+
+		if i >= (attempts - 1) {
+			break
+		}
+
+		time.Sleep(sleep)
+
+		log.WithFields(logrus.Fields{
+			"error": err,
+		}).Warn("Retrying after error")
+
+		log.Println("retrying after error:", err)
+	}
+	return fmt.Errorf("after %d attempts, last error: %s", attempts, err)
 }

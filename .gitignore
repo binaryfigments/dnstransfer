@@ -5,3 +5,4 @@ domains10.txt
 logrus.log
 *.log
 *.txt
+dnstransfer
