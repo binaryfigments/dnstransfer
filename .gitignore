@@ -6,3 +6,5 @@ logrus.log
 *.log
 *.txt
 dnstransfer
+TODO.md
+tlds-alpha-by-domain.txt

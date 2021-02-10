@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/miekg/dns"
-	"golang.org/x/net/publicsuffix"
 )
 
 type Data struct {
@@ -16,11 +15,12 @@ type Data struct {
 func Get(hostname string, nameserver string) (*Data, error) {
 	data := new(Data)
 	domain := strings.ToLower(hostname)
-	domain, err := publicsuffix.EffectiveTLDPlusOne(hostname)
-	if err != nil {
-		return data, err
-	}
-
+	/*
+		domain, err := publicsuffix.EffectiveTLDPlusOne(hostname)
+		if err != nil {
+			return data, err
+		}
+	*/
 	msg := new(dns.Msg)
 	msg.SetAxfr(dns.Fqdn(domain))
 
